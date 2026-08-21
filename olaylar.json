@@ -1,0 +1,32 @@
+[
+  {
+    "event_id": 4625,
+    "aciklama": "Başarısız giriş",
+    "zaman": "2026-01-15 03:42:18",
+    "kaynak": "Security",
+    "kullanici": "TANITILMAMIS",
+    "kaynak_ip": null,
+    "ek_bilgi": {},
+    "giris_turu": "192.168.1.105"
+  },
+  {
+    "event_id": 4624,
+    "aciklama": "Başarılı giriş",
+    "zaman": "2026-01-15 03:41:00",
+    "kaynak": "Security",
+    "kullanici": "TANITILMAMIS",
+    "kaynak_ip": null,
+    "ek_bilgi": {},
+    "giris_turu": "oyku"
+  },
+  {
+    "event_id": 4720,
+    "aciklama": "Yeni kullanıcı oluşturuldu",
+    "zaman": "2026-01-14 15:30:22",
+    "kaynak": "Security",
+    "kullanici": "yeni_kullanici",
+    "kaynak_ip": null,
+    "ek_bilgi": {},
+    "olusturan": "admin"
+  }
+]
