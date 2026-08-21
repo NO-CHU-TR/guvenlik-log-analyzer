@@ -1,0 +1,10 @@
+pywin32
+rich
+jinja2
+matplotlib
+sqlalchemy
+fastapi
+uvicorn[standard]
+requests
+pytest
+checkov
