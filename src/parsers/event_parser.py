@@ -6,7 +6,8 @@ Converts raw event dict to clean, consistent format.
 from datetime import datetime
 
 
-# Event ID to message field indices
+# Event ID to message field indices mapping
+# Which field index contains which information for each event type
 FIELD_MAP = {
     4625: {   # Failed logon
         "kullanici": 5,
@@ -56,6 +57,7 @@ def parse_event(ham_olay: dict) -> dict:
     }
 
     # Event-specific fields
+    # Get field mapping for this event ID
     harita = FIELD_MAP.get(event_id, {})
     for alan, indeks in harita.items():
         if indeks is not None:
@@ -63,7 +65,7 @@ def parse_event(ham_olay: dict) -> dict:
         else:
             temiz[alan] = None
 
-    # Cleanup
+    # Cleanup - remove local/internal IPs
     if temiz.get("kaynak_ip") in ["-", "::1", "127.0.0.1", None]:
         temiz["kaynak_ip"] = None
 
