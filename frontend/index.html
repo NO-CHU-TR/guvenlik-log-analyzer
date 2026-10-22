@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Güvenlik Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -53,7 +54,27 @@
         <div class="kart dusuk">🟢 DÜŞÜK<div class="sayi" id="dusuk">-</div></div>
     </div>
 
+    <div style="background:white; border-radius:8px; padding:16px; margin-bottom:20px; max-width:400px;">
+        <h3 style="margin-top:0;">Seviye Dağılımı</h3>
+        <canvas id="seviyePasta"></canvas>
+    </div>
+
     <script>
+
+
+// Seviye dağılımı pasta grafiği
+function pastaGrafigiCiz(kritik, yuksek, orta, dusuk) {
+    new Chart(document.getElementById("seviyePasta"), {
+        type: "doughnut",
+        data: {
+            labels: ["Kritik", "Yüksek", "Orta", "Düşük"],
+            datasets: [{
+                data: [kritik, yuksek, orta, dusuk],
+                backgroundColor: ["#e74c3c", "#e67e22", "#f39c12", "#27ae60"]
+            }]
+        }
+    });
+}
         // Son taramanın özetini al ve kartlara yaz
         async function sonTaramaYukle() {
             try {
@@ -71,6 +92,9 @@
                 document.getElementById("orta").textContent = veri.orta;
                 document.getElementById("dusuk").textContent = veri.dusuk;
 
+
+                pastaGrafigiCiz(veri.kritik, veri.yuksek, veri.orta, veri.dusuk);
+                
                 document.getElementById("durum").textContent =
                     "Son tarama: " + veri.tarih + " | Toplam olay: " + veri.toplam;
             } catch (hata) {
