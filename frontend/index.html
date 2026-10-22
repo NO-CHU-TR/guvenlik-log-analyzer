@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Güvenlik Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        #durum {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .kartlar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .kart {
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+        }
+        .kart .sayi {
+            font-size: 32px;
+        }
+        .kritik { background-color: #e74c3c; }
+        .yuksek { background-color: #e67e22; }
+        .orta   { background-color: #f39c12; }
+        .dusuk  { background-color: #27ae60; }
+    </style>
+</head>
+<body>
+    <h1>🔒 Güvenlik Log Analizi Dashboard</h1>
+    <p id="durum">Veriler yükleniyor...</p>
+
+    <div class="kartlar">
+        <div class="kart kritik">🔴 KRİTİK<div class="sayi" id="kritik">-</div></div>
+        <div class="kart yuksek">🟠 YÜKSEK<div class="sayi" id="yuksek">-</div></div>
+        <div class="kart orta">🟡 ORTA<div class="sayi" id="orta">-</div></div>
+        <div class="kart dusuk">🟢 DÜŞÜK<div class="sayi" id="dusuk">-</div></div>
+    </div>
+
+    <script>
+        // Son taramanın özetini al ve kartlara yaz
+        async function sonTaramaYukle() {
+            try {
+                const cevap = await fetch("/api/son-tarama");
+                const veri = await cevap.json();
+
+                if (!veri.var) {
+                    document.getElementById("durum").textContent =
+                        "Henüz tarama yapılmamış.";
+                    return;
+                }
+
+                document.getElementById("kritik").textContent = veri.kritik;
+                document.getElementById("yuksek").textContent = veri.yuksek;
+                document.getElementById("orta").textContent = veri.orta;
+                document.getElementById("dusuk").textContent = veri.dusuk;
+
+                document.getElementById("durum").textContent =
+                    "Son tarama: " + veri.tarih + " | Toplam olay: " + veri.toplam;
+            } catch (hata) {
+                document.getElementById("durum").textContent =
+                    "API'ye bağlanılamadı: " + hata;
+            }
+        }
+
+        sonTaramaYukle();
+    </script>
+</body>
+</html>

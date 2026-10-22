@@ -4,6 +4,7 @@ Serves security events and scan history from guvenlik.db.
 """
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from src.database.models import init_db, get_session, SecurityEvent, ScanResult
 
 app = FastAPI(title="Güvenlik Log Analyzer API", version="1.0.0")
@@ -12,8 +13,8 @@ app = FastAPI(title="Güvenlik Log Analyzer API", version="1.0.0")
 engine = init_db("guvenlik.db")
 
 
-@app.get("/")
-def root():
+@app.get("/api/durum")
+def durum():
     """Health check: confirms the API is running."""
     return {"durum": "çalışıyor", "versiyon": "1.0.0"}
 
@@ -74,3 +75,33 @@ def gecmis(limit: int = 20):
         }
     finally:
         session.close()
+
+
+@app.get("/api/son-tarama")
+def son_tarama():
+    """Return the most recent scan summary (used by dashboard cards)."""
+    session = get_session(engine)
+    try:
+        son = (session.query(ScanResult)
+               .order_by(ScanResult.scan_date.desc())
+               .first())
+
+        if son is None:
+            return {"var": False}
+
+        return {
+            "var": True,
+            "tarih": son.scan_date.isoformat(),
+            "toplam": son.total_events,
+            "kritik": son.kritik_count,
+            "yuksek": son.yuksek_count,
+            "orta": son.orta_count,
+            "dusuk": son.dusuk_count,
+            "ort_skor": son.avg_score,
+        }
+    finally:
+        session.close()
+
+# Static files must be mounted AFTER all API routes.
+# "/" serves frontend/index.html.
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
