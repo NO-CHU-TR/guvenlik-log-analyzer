@@ -4,26 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Güvenlik Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
             margin: 0;
             padding: 20px;
+            color: #2c3e50;
         }
         h1 {
-            color: #2c3e50;
             border-bottom: 3px solid #3498db;
             padding-bottom: 10px;
+            margin-top: 0;
         }
-        #durum {
-            color: #7f8c8d;
+        h3 { margin-top: 0; }
+        #durum { color: #7f8c8d; font-size: 14px; }
+        .linkler a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 14px;
+            background: #3498db;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
             font-size: 14px;
         }
         .kartlar {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             margin: 20px 0;
         }
@@ -34,76 +43,267 @@
             text-align: center;
             font-weight: bold;
         }
-        .kart .sayi {
-            font-size: 32px;
-        }
+        .kart .sayi { font-size: 32px; }
         .kritik { background-color: #e74c3c; }
         .yuksek { background-color: #e67e22; }
         .orta   { background-color: #f39c12; }
         .dusuk  { background-color: #27ae60; }
+        .toplam { background-color: #34495e; }
+        .skor   { background-color: #8e44ad; }
+        .izgara {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            overflow-x: auto;
+        }
+        .genis { grid-column: 1 / -1; }
+        #seviyePasta { max-height: 300px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #ecf0f1; }
+        th { background: #ecf0f1; }
+        .rozet {
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .trend-iyi   { color: #27ae60; }
+        .trend-kotu  { color: #e74c3c; }
+        .trend-stabil{ color: #7f8c8d; }
+        #grafikResmi { max-width: 100%; border-radius: 6px; }
+        .bos { color: #95a5a6; font-style: italic; }
     </style>
 </head>
 <body>
     <h1>🔒 Güvenlik Log Analizi Dashboard</h1>
     <p id="durum">Veriler yükleniyor...</p>
+    <div class="linkler">
+        <a href="/rapor" target="_blank">📄 HTML Rapor (Faz 7)</a>
+        <a href="/docs" target="_blank">⚙️ API Dokümanı (Faz 12)</a>
+    </div>
 
+    <!-- Faz 13: özet kartlar -->
     <div class="kartlar">
+        <div class="kart toplam">📊 TOPLAM<div class="sayi" id="toplam">-</div></div>
         <div class="kart kritik">🔴 KRİTİK<div class="sayi" id="kritik">-</div></div>
         <div class="kart yuksek">🟠 YÜKSEK<div class="sayi" id="yuksek">-</div></div>
         <div class="kart orta">🟡 ORTA<div class="sayi" id="orta">-</div></div>
         <div class="kart dusuk">🟢 DÜŞÜK<div class="sayi" id="dusuk">-</div></div>
+        <div class="kart skor">🎯 ORT. SKOR<div class="sayi" id="ortSkor">-</div></div>
     </div>
 
-    <div style="background:white; border-radius:8px; padding:16px; margin-bottom:20px; max-width:400px;">
-        <h3 style="margin-top:0;">Seviye Dağılımı</h3>
-        <canvas id="seviyePasta"></canvas>
+    <div class="izgara">
+        <!-- Faz 14: seviye dağılımı -->
+        <div class="panel">
+            <h3>Seviye Dağılımı</h3>
+            <canvas id="seviyePasta"></canvas>
+        </div>
+
+        <!-- Faz 10: trend -->
+        <div class="panel">
+            <h3>Trend (son iki tarama)</h3>
+            <div id="trendOzet" class="bos">Yükleniyor...</div>
+            <canvas id="gecmisCizgi" style="margin-top:12px;"></canvas>
+        </div>
+
+        <!-- Olay türleri -->
+        <div class="panel">
+            <h3>Olay Türleri</h3>
+            <canvas id="turCubuk"></canvas>
+        </div>
+
+        <!-- En çok görülen kullanıcı ve IP'ler -->
+        <div class="panel">
+            <h3>En Aktif Kullanıcılar</h3>
+            <table id="kullaniciTablo"></table>
+            <h3 style="margin-top:16px;">En Aktif Kaynak IP'ler</h3>
+            <table id="ipTablo"></table>
+        </div>
+
+        <!-- Faz 12: kritik olaylar -->
+        <div class="panel genis">
+            <h3>🔴 Kritik Olaylar</h3>
+            <table id="kritikTablo"></table>
+        </div>
+
+        <!-- Faz 11: Checkov IaC bulguları -->
+        <div class="panel genis">
+            <h3>🐳 IaC Bulguları (Checkov)</h3>
+            <table id="iacTablo"></table>
+        </div>
+
+        <!-- Faz 9: tarama geçmişi -->
+        <div class="panel genis">
+            <h3>🗂️ Tarama Geçmişi</h3>
+            <table id="gecmisTablo"></table>
+        </div>
+
+        <!-- Tüm olaylar -->
+        <div class="panel genis">
+            <h3>📋 Son Olaylar</h3>
+            <table id="olayTablo"></table>
+        </div>
+
+        <!-- Faz 8: matplotlib grafikleri -->
+        <div class="panel genis">
+            <h3>📈 Matplotlib Grafikleri (Faz 8)</h3>
+            <img id="grafikResmi" src="/grafik" alt="grafikler.png"
+                 onerror="this.replaceWith(Object.assign(document.createElement('p'), {className:'bos', textContent:'grafikler.png bulunamadı'}))">
+        </div>
     </div>
 
     <script>
+        const RENKLER = {
+            "KRİTİK": "#e74c3c", "YÜKSEK": "#e67e22", "ORTA": "#f39c12", "DÜŞÜK": "#27ae60"
+        };
 
-
-// Seviye dağılımı pasta grafiği
-function pastaGrafigiCiz(kritik, yuksek, orta, dusuk) {
-    new Chart(document.getElementById("seviyePasta"), {
-        type: "doughnut",
-        data: {
-            labels: ["Kritik", "Yüksek", "Orta", "Düşük"],
-            datasets: [{
-                data: [kritik, yuksek, orta, dusuk],
-                backgroundColor: ["#e74c3c", "#e67e22", "#f39c12", "#27ae60"]
-            }]
+        async function getir(yol) {
+            const cevap = await fetch(yol);
+            return cevap.json();
         }
-    });
-}
-        // Son taramanın özetini al ve kartlara yaz
+
+        function tarih(iso) {
+            return new Date(iso).toLocaleString("tr-TR");
+        }
+
+        function rozet(seviye) {
+            const renk = RENKLER[seviye] || "#7f8c8d";
+            return `<span class="rozet" style="background:${renk}">${seviye}</span>`;
+        }
+
+        // Escape text from the database before putting it in HTML
+        function guvenli(deger) {
+            const div = document.createElement("div");
+            div.textContent = deger ?? "-";
+            return div.innerHTML;
+        }
+
+        // Fill a table from a header list and row arrays
+        function tabloDoldur(id, basliklar, satirlar) {
+            const tablo = document.getElementById(id);
+            if (!satirlar.length) {
+                tablo.innerHTML = `<tr><td class="bos">Kayıt yok</td></tr>`;
+                return;
+            }
+            tablo.innerHTML =
+                "<tr>" + basliklar.map(b => `<th>${b}</th>`).join("") + "</tr>" +
+                satirlar.map(s => "<tr>" + s.map(h => `<td>${h}</td>`).join("") + "</tr>").join("");
+        }
+
+        function olaySatiri(o) {
+            return [rozet(o.seviye), o.skor.toFixed(1), o.event_id, guvenli(o.aciklama),
+                    guvenli(o.kullanici), guvenli(o.kaynak_ip), tarih(o.zaman)];
+        }
+        const OLAY_BASLIK = ["Seviye", "Skor", "Event ID", "Açıklama", "Kullanıcı", "IP", "Zaman"];
+
         async function sonTaramaYukle() {
-            try {
-                const cevap = await fetch("/api/son-tarama");
-                const veri = await cevap.json();
+            const veri = await getir("/api/son-tarama");
+            if (!veri.var) {
+                document.getElementById("durum").textContent = "Henüz tarama yapılmamış.";
+                return;
+            }
+            for (const alan of ["toplam", "kritik", "yuksek", "orta", "dusuk"]) {
+                document.getElementById(alan).textContent = veri[alan];
+            }
+            document.getElementById("ortSkor").textContent = veri.ort_skor.toFixed(2);
+            document.getElementById("durum").textContent =
+                "Son tarama: " + tarih(veri.tarih) + " | Toplam olay: " + veri.toplam;
 
-                if (!veri.var) {
-                    document.getElementById("durum").textContent =
-                        "Henüz tarama yapılmamış.";
-                    return;
+            new Chart(document.getElementById("seviyePasta"), {
+                type: "doughnut",
+                data: {
+                    labels: ["Kritik", "Yüksek", "Orta", "Düşük"],
+                    datasets: [{
+                        data: [veri.kritik, veri.yuksek, veri.orta, veri.dusuk],
+                        backgroundColor: Object.values(RENKLER)
+                    }]
                 }
+            });
+        }
 
-                document.getElementById("kritik").textContent = veri.kritik;
-                document.getElementById("yuksek").textContent = veri.yuksek;
-                document.getElementById("orta").textContent = veri.orta;
-                document.getElementById("dusuk").textContent = veri.dusuk;
+        async function trendYukle() {
+            const t = await getir("/api/trend");
+            const kutu = document.getElementById("trendOzet");
+            if (!t.var) {
+                kutu.textContent = "Trend için en az 2 tarama gerekli.";
+            } else {
+                const sinif = t.yorum === "Kötüleşiyor" ? "trend-kotu"
+                            : t.yorum === "İyileşiyor" ? "trend-iyi" : "trend-stabil";
+                const isaret = n => (n > 0 ? "+" : "") + n;
+                kutu.className = "";
+                kutu.innerHTML =
+                    `<b class="${sinif}" style="font-size:20px;">${t.yorum}</b><br>` +
+                    `Toplam: ${isaret(t.toplam)} · Kritik: ${isaret(t.kritik)} · Yüksek: ${isaret(t.yuksek)}`;
+            }
 
+            const g = await getir("/api/gecmis");
+            const taramalar = g.taramalar.slice().reverse();
+            new Chart(document.getElementById("gecmisCizgi"), {
+                type: "line",
+                data: {
+                    labels: taramalar.map(x => tarih(x.tarih)),
+                    datasets: [
+                        { label: "Toplam", data: taramalar.map(x => x.toplam), borderColor: "#34495e" },
+                        { label: "Kritik", data: taramalar.map(x => x.kritik), borderColor: "#e74c3c" },
+                        { label: "Yüksek", data: taramalar.map(x => x.yuksek), borderColor: "#e67e22" }
+                    ]
+                },
+                options: { scales: { x: { ticks: { display: false } } } }
+            });
 
-                pastaGrafigiCiz(veri.kritik, veri.yuksek, veri.orta, veri.dusuk);
-                
-                document.getElementById("durum").textContent =
-                    "Son tarama: " + veri.tarih + " | Toplam olay: " + veri.toplam;
+            tabloDoldur("gecmisTablo",
+                ["#", "Tarih", "Toplam", "Kritik", "Yüksek", "Orta", "Düşük", "Ort. Skor"],
+                g.taramalar.map(x => [x.id, tarih(x.tarih), x.toplam, x.kritik, x.yuksek,
+                                      x.orta, x.dusuk, (x.ort_skor ?? 0).toFixed(2)]));
+        }
+
+        async function istatistikYukle() {
+            const s = await getir("/api/istatistik");
+            new Chart(document.getElementById("turCubuk"), {
+                type: "bar",
+                data: {
+                    labels: s.olay_turleri.map(x => `${x.event_id} ${x.aciklama}`),
+                    datasets: [{ label: "Olay sayısı", data: s.olay_turleri.map(x => x.adet),
+                                 backgroundColor: "#3498db" }]
+                },
+                options: { indexAxis: "y", plugins: { legend: { display: false } } }
+            });
+            tabloDoldur("kullaniciTablo", ["Kullanıcı", "Olay"],
+                        s.kullanicilar.map(x => [guvenli(x.ad), x.adet]));
+            tabloDoldur("ipTablo", ["IP", "Olay"],
+                        s.ipler.map(x => [guvenli(x.ad), x.adet]));
+        }
+
+        async function tablolarYukle() {
+            const k = await getir("/api/olaylar/kritik?limit=50");
+            tabloDoldur("kritikTablo", OLAY_BASLIK,
+                        k.olaylar.map(o => olaySatiri({ ...o, seviye: "KRİTİK" })));
+
+            const iac = await getir("/api/iac");
+            tabloDoldur("iacTablo", ["Seviye", "Skor", "Bulgu"],
+                        iac.bulgular.map(b => [rozet(b.seviye), b.skor.toFixed(1), guvenli(b.aciklama)]));
+
+            const tum = await getir("/api/olaylar?limit=100");
+            tabloDoldur("olayTablo", OLAY_BASLIK, tum.olaylar.map(olaySatiri));
+        }
+
+        async function hepsiniYukle() {
+            try {
+                await Promise.all([sonTaramaYukle(), trendYukle(), istatistikYukle(), tablolarYukle()]);
             } catch (hata) {
-                document.getElementById("durum").textContent =
-                    "API'ye bağlanılamadı: " + hata;
+                document.getElementById("durum").textContent = "API'ye bağlanılamadı: " + hata;
             }
         }
 
-        sonTaramaYukle();
+        hepsiniYukle();
     </script>
 </body>
 </html>
