@@ -1,309 +1,239 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Güvenlik Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 20px;
-            color: #2c3e50;
-        }
-        h1 {
-            border-bottom: 3px solid #3498db;
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-        h3 { margin-top: 0; }
-        #durum { color: #7f8c8d; font-size: 14px; }
-        .linkler a {
-            display: inline-block;
-            margin-right: 10px;
-            padding: 8px 14px;
-            background: #3498db;
-            color: white;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .kartlar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .kart {
-            padding: 20px;
-            border-radius: 8px;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-        }
-        .kart .sayi { font-size: 32px; }
-        .kritik { background-color: #e74c3c; }
-        .yuksek { background-color: #e67e22; }
-        .orta   { background-color: #f39c12; }
-        .dusuk  { background-color: #27ae60; }
-        .toplam { background-color: #34495e; }
-        .skor   { background-color: #8e44ad; }
-        .izgara {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .panel {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            overflow-x: auto;
-        }
-        .genis { grid-column: 1 / -1; }
-        #seviyePasta { max-height: 300px; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #ecf0f1; }
-        th { background: #ecf0f1; }
-        .rozet {
-            padding: 2px 8px;
-            border-radius: 10px;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .trend-iyi   { color: #27ae60; }
-        .trend-kotu  { color: #e74c3c; }
-        .trend-stabil{ color: #7f8c8d; }
-        #grafikResmi { max-width: 100%; border-radius: 6px; }
-        .bos { color: #95a5a6; font-style: italic; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Güvenlik Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; color: #2c3e50; }
+    h1 { border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+    .ust { margin: 10px 0; display: flex; align-items: center; gap: 12px; }
+    .kart-satir { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 20px 0; }
+    .kart { padding: 18px; border-radius: 8px; color: white; text-align: center; font-weight: bold; }
+    .kart .sayi { font-size: 30px; margin-top: 6px; }
+    .kutu { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grafik-kutu { position: relative; height: 280px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #34495e; color: white; padding: 8px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    .btn { padding: 10px 18px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+    .btn:disabled { background: #95a5a6; cursor: wait; }
+    .ai-kart { background: #fafafa; border-left: 4px solid #8e44ad; padding: 12px; margin-bottom: 10px; border-radius: 6px; }
+    .muted { color: #7f8c8d; font-style: italic; }
+</style>
 </head>
 <body>
     <h1>🔒 Güvenlik Log Analizi Dashboard</h1>
-    <p id="durum">Veriler yükleniyor...</p>
-    <div class="linkler">
-        <a href="/rapor" target="_blank">📄 HTML Rapor (Faz 7)</a>
-        <a href="/docs" target="_blank">⚙️ API Dokümanı (Faz 12)</a>
+
+    <div class="ust">
+        <button id="taraBtn" class="btn" onclick="taraCalistir()">▶ Çalıştır: Tara + AI Yorumla</button>
+        <span id="durum" class="muted">Yükleniyor...</span>
     </div>
 
-    <!-- Faz 13: özet kartlar -->
-    <div class="kartlar">
-        <div class="kart toplam">📊 TOPLAM<div class="sayi" id="toplam">-</div></div>
-        <div class="kart kritik">🔴 KRİTİK<div class="sayi" id="kritik">-</div></div>
-        <div class="kart yuksek">🟠 YÜKSEK<div class="sayi" id="yuksek">-</div></div>
-        <div class="kart orta">🟡 ORTA<div class="sayi" id="orta">-</div></div>
-        <div class="kart dusuk">🟢 DÜŞÜK<div class="sayi" id="dusuk">-</div></div>
-        <div class="kart skor">🎯 ORT. SKOR<div class="sayi" id="ortSkor">-</div></div>
+    <div class="kart-satir">
+        <div class="kart" style="background:#34495e">TOPLAM<div class="sayi" id="toplam">-</div></div>
+        <div class="kart" style="background:#e74c3c">KRİTİK<div class="sayi" id="kritik">-</div></div>
+        <div class="kart" style="background:#e67e22">YÜKSEK<div class="sayi" id="yuksek">-</div></div>
+        <div class="kart" style="background:#f39c12">ORTA<div class="sayi" id="orta">-</div></div>
+        <div class="kart" style="background:#27ae60">DÜŞÜK<div class="sayi" id="dusuk">-</div></div>
+        <div class="kart" style="background:#8e44ad">ORT. SKOR<div class="sayi" id="ortskor">-</div></div>
     </div>
 
-    <div class="izgara">
-        <!-- Faz 14: seviye dağılımı -->
-        <div class="panel">
+    <div class="grid2">
+        <div class="kutu">
             <h3>Seviye Dağılımı</h3>
-            <canvas id="seviyePasta"></canvas>
+            <div class="grafik-kutu"><canvas id="pasta"></canvas></div>
         </div>
-
-        <!-- Faz 10: trend -->
-        <div class="panel">
-            <h3>Trend (son iki tarama)</h3>
-            <div id="trendOzet" class="bos">Yükleniyor...</div>
-            <canvas id="gecmisCizgi" style="margin-top:12px;"></canvas>
-        </div>
-
-        <!-- Olay türleri -->
-        <div class="panel">
-            <h3>Olay Türleri</h3>
-            <canvas id="turCubuk"></canvas>
-        </div>
-
-        <!-- En çok görülen kullanıcı ve IP'ler -->
-        <div class="panel">
-            <h3>En Aktif Kullanıcılar</h3>
-            <table id="kullaniciTablo"></table>
-            <h3 style="margin-top:16px;">En Aktif Kaynak IP'ler</h3>
-            <table id="ipTablo"></table>
-        </div>
-
-        <!-- Faz 12: kritik olaylar -->
-        <div class="panel genis">
-            <h3>🔴 Kritik Olaylar</h3>
-            <table id="kritikTablo"></table>
-        </div>
-
-        <!-- Faz 11: Checkov IaC bulguları -->
-        <div class="panel genis">
-            <h3>🐳 IaC Bulguları (Checkov)</h3>
-            <table id="iacTablo"></table>
-        </div>
-
-        <!-- Faz 9: tarama geçmişi -->
-        <div class="panel genis">
-            <h3>🗂️ Tarama Geçmişi</h3>
-            <table id="gecmisTablo"></table>
-        </div>
-
-        <!-- Tüm olaylar -->
-        <div class="panel genis">
-            <h3>📋 Son Olaylar</h3>
-            <table id="olayTablo"></table>
-        </div>
-
-        <!-- Faz 8: matplotlib grafikleri -->
-        <div class="panel genis">
-            <h3>📈 Matplotlib Grafikleri (Faz 8)</h3>
-            <img id="grafikResmi" src="/grafik" alt="grafikler.png"
-                 onerror="this.replaceWith(Object.assign(document.createElement('p'), {className:'bos', textContent:'grafikler.png bulunamadı'}))">
+        <div class="kutu">
+            <h3>Trend (son taramalar)</h3>
+            <div class="grafik-kutu"><canvas id="trend"></canvas></div>
         </div>
     </div>
 
-    <script>
-        const RENKLER = {
-            "KRİTİK": "#e74c3c", "YÜKSEK": "#e67e22", "ORTA": "#f39c12", "DÜŞÜK": "#27ae60"
-        };
+    <div class="kutu" id="aiBolum" style="display:none;">
+        <h3>🤖 AI Yorumları</h3>
+        <div id="aiSonuc"></div>
+    </div>
 
-        async function getir(yol) {
-            const cevap = await fetch(yol);
-            return cevap.json();
+    <div class="kutu">
+        <h3>🔴 Kritik Olaylar</h3>
+        <div id="kritikListe" class="muted">Yükleniyor...</div>
+    </div>
+
+    <div class="kutu">
+        <h3>🗂️ Tarama Geçmişi</h3>
+        <table>
+            <thead>
+                <tr><th>#</th><th>Tarih</th><th>Toplam</th><th>Kritik</th><th>Yüksek</th><th>Orta</th><th>Düşük</th><th>Ort. Skor</th></tr>
+            </thead>
+            <tbody id="gecmisTablo"></tbody>
+        </table>
+    </div>
+
+<script>
+let pastaGrafik = null;
+let trendGrafik = null;
+
+async function getir(url, secenek) {
+    const cevap = await fetch(url, secenek);
+    if (!cevap.ok) throw new Error(url + " → HTTP " + cevap.status);
+    return cevap.json();
+}
+
+function yaz(id, metin) {
+    document.getElementById(id).textContent = metin;
+}
+
+function tarihKisalt(iso) {
+    return iso ? iso.replace("T", " ").slice(0, 19) : "-";
+}
+
+async function sonTaramaYukle() {
+    try {
+        const v = await getir("/api/son-tarama");
+        if (!v.var) {
+            yaz("durum", "Henüz tarama yapılmamış.");
+            return;
         }
+        yaz("toplam", v.toplam);
+        yaz("kritik", v.kritik);
+        yaz("yuksek", v.yuksek);
+        yaz("orta", v.orta);
+        yaz("dusuk", v.dusuk);
+        yaz("ortskor", (v.ort_skor ?? 0).toFixed(2));
+        yaz("durum", "Son tarama: " + tarihKisalt(v.tarih));
 
-        function tarih(iso) {
-            return new Date(iso).toLocaleString("tr-TR");
-        }
+        if (pastaGrafik) pastaGrafik.destroy();
+        pastaGrafik = new Chart(document.getElementById("pasta"), {
+            type: "doughnut",
+            data: {
+                labels: ["Kritik", "Yüksek", "Orta", "Düşük"],
+                datasets: [{
+                    data: [v.kritik, v.yuksek, v.orta, v.dusuk],
+                    backgroundColor: ["#e74c3c", "#e67e22", "#f39c12", "#27ae60"]
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    } catch (h) {
+        yaz("durum", "Son tarama alınamadı: " + h.message);
+    }
+}
 
-        function rozet(seviye) {
-            const renk = RENKLER[seviye] || "#7f8c8d";
-            return `<span class="rozet" style="background:${renk}">${seviye}</span>`;
-        }
+async function gecmisYukle() {
+    try {
+        const v = await getir("/api/gecmis?limit=20");
+        const tbody = document.getElementById("gecmisTablo");
+        tbody.innerHTML = "";
 
-        // Escape text from the database before putting it in HTML
-        function guvenli(deger) {
-            const div = document.createElement("div");
-            div.textContent = deger ?? "-";
-            return div.innerHTML;
-        }
-
-        // Fill a table from a header list and row arrays
-        function tabloDoldur(id, basliklar, satirlar) {
-            const tablo = document.getElementById(id);
-            if (!satirlar.length) {
-                tablo.innerHTML = `<tr><td class="bos">Kayıt yok</td></tr>`;
-                return;
-            }
-            tablo.innerHTML =
-                "<tr>" + basliklar.map(b => `<th>${b}</th>`).join("") + "</tr>" +
-                satirlar.map(s => "<tr>" + s.map(h => `<td>${h}</td>`).join("") + "</tr>").join("");
-        }
-
-        function olaySatiri(o) {
-            return [rozet(o.seviye), o.skor.toFixed(1), o.event_id, guvenli(o.aciklama),
-                    guvenli(o.kullanici), guvenli(o.kaynak_ip), tarih(o.zaman)];
-        }
-        const OLAY_BASLIK = ["Seviye", "Skor", "Event ID", "Açıklama", "Kullanıcı", "IP", "Zaman"];
-
-        async function sonTaramaYukle() {
-            const veri = await getir("/api/son-tarama");
-            if (!veri.var) {
-                document.getElementById("durum").textContent = "Henüz tarama yapılmamış.";
-                return;
-            }
-            for (const alan of ["toplam", "kritik", "yuksek", "orta", "dusuk"]) {
-                document.getElementById(alan).textContent = veri[alan];
-            }
-            document.getElementById("ortSkor").textContent = veri.ort_skor.toFixed(2);
-            document.getElementById("durum").textContent =
-                "Son tarama: " + tarih(veri.tarih) + " | Toplam olay: " + veri.toplam;
-
-            new Chart(document.getElementById("seviyePasta"), {
-                type: "doughnut",
-                data: {
-                    labels: ["Kritik", "Yüksek", "Orta", "Düşük"],
-                    datasets: [{
-                        data: [veri.kritik, veri.yuksek, veri.orta, veri.dusuk],
-                        backgroundColor: Object.values(RENKLER)
-                    }]
-                }
+        v.taramalar.forEach(t => {
+            const tr = document.createElement("tr");
+            [t.id, tarihKisalt(t.tarih), t.toplam, t.kritik, t.yuksek, t.orta, t.dusuk,
+             (t.ort_skor ?? 0).toFixed(2)].forEach(d => {
+                const td = document.createElement("td");
+                td.textContent = d ?? "-";
+                tr.appendChild(td);
             });
+            tbody.appendChild(tr);
+        });
+
+        const sirali = [...v.taramalar].reverse();
+        if (trendGrafik) trendGrafik.destroy();
+        trendGrafik = new Chart(document.getElementById("trend"), {
+            type: "line",
+            data: {
+                labels: sirali.map(t => tarihKisalt(t.tarih).slice(5, 16)),
+                datasets: [
+                    { label: "Toplam", data: sirali.map(t => t.toplam), borderColor: "#34495e" },
+                    { label: "Kritik", data: sirali.map(t => t.kritik), borderColor: "#e74c3c" },
+                    { label: "Yüksek", data: sirali.map(t => t.yuksek), borderColor: "#e67e22" }
+                ]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    } catch (h) {
+        document.getElementById("gecmisTablo").textContent = "Geçmiş alınamadı: " + h.message;
+    }
+}
+
+async function kritikYukle() {
+    const kutu = document.getElementById("kritikListe");
+    try {
+        const v = await getir("/api/olaylar/kritik");
+        kutu.innerHTML = "";
+        if (v.adet === 0) {
+            kutu.textContent = "Kayıt yok";
+            return;
         }
+        v.olaylar.forEach(o => {
+            const p = document.createElement("p");
+            p.textContent = "[" + o.skor + "] " + o.aciklama + " | " + (o.kullanici || "-") + " | " + tarihKisalt(o.zaman);
+            kutu.appendChild(p);
+        });
+    } catch (h) {
+        kutu.textContent = "Kritik olaylar alınamadı: " + h.message;
+    }
+}
 
-        async function trendYukle() {
-            const t = await getir("/api/trend");
-            const kutu = document.getElementById("trendOzet");
-            if (!t.var) {
-                kutu.textContent = "Trend için en az 2 tarama gerekli.";
-            } else {
-                const sinif = t.yorum === "Kötüleşiyor" ? "trend-kotu"
-                            : t.yorum === "İyileşiyor" ? "trend-iyi" : "trend-stabil";
-                const isaret = n => (n > 0 ? "+" : "") + n;
-                kutu.className = "";
-                kutu.innerHTML =
-                    `<b class="${sinif}" style="font-size:20px;">${t.yorum}</b><br>` +
-                    `Toplam: ${isaret(t.toplam)} · Kritik: ${isaret(t.kritik)} · Yüksek: ${isaret(t.yuksek)}`;
-            }
+function aiKartiOlustur(y) {
+    const kart = document.createElement("div");
+    kart.className = "ai-kart";
 
-            const g = await getir("/api/gecmis");
-            const taramalar = g.taramalar.slice().reverse();
-            new Chart(document.getElementById("gecmisCizgi"), {
-                type: "line",
-                data: {
-                    labels: taramalar.map(x => tarih(x.tarih)),
-                    datasets: [
-                        { label: "Toplam", data: taramalar.map(x => x.toplam), borderColor: "#34495e" },
-                        { label: "Kritik", data: taramalar.map(x => x.kritik), borderColor: "#e74c3c" },
-                        { label: "Yüksek", data: taramalar.map(x => x.yuksek), borderColor: "#e67e22" }
-                    ]
-                },
-                options: { scales: { x: { ticks: { display: false } } } }
-            });
+    const baslik = document.createElement("strong");
+    baslik.textContent = "[" + y.skor + "] " + y.aciklama + " (id: " + y.id + ")";
+    kart.appendChild(baslik);
 
-            tabloDoldur("gecmisTablo",
-                ["#", "Tarih", "Toplam", "Kritik", "Yüksek", "Orta", "Düşük", "Ort. Skor"],
-                g.taramalar.map(x => [x.id, tarih(x.tarih), x.toplam, x.kritik, x.yuksek,
-                                      x.orta, x.dusuk, (x.ort_skor ?? 0).toFixed(2)]));
+    const tehdit = document.createElement("p");
+    tehdit.textContent = "Tehdit türü: " + (y.yorum.tehdit_turu || "-");
+    kart.appendChild(tehdit);
+
+    const ozet = document.createElement("p");
+    ozet.textContent = y.yorum.ozet || "";
+    kart.appendChild(ozet);
+
+    if (y.yorum.aksiyonlar && y.yorum.aksiyonlar.length) {
+        const liste = document.createElement("ul");
+        y.yorum.aksiyonlar.forEach(a => {
+            const li = document.createElement("li");
+            li.textContent = a;
+            liste.appendChild(li);
+        });
+        kart.appendChild(liste);
+    }
+    return kart;
+}
+
+async function taraCalistir() {
+    const btn = document.getElementById("taraBtn");
+    const aiSonuc = document.getElementById("aiSonuc");
+    btn.disabled = true;
+    aiSonuc.innerHTML = "";
+    document.getElementById("aiBolum").style.display = "none";
+    yaz("durum", "Tarama ve AI yorumu çalışıyor, 1-2 dakika sürebilir...");
+
+    try {
+        const veri = await getir("/api/tara", { method: "POST" });
+        if (!veri.basarili) {
+            yaz("durum", veri.hata);
+            return;
         }
+        yaz("durum", "Tamamlandı: " + veri.toplam + " olay tarandı.");
+        veri.yorumlar.forEach(y => aiSonuc.appendChild(aiKartiOlustur(y)));
+        document.getElementById("aiBolum").style.display = "block";
 
-        async function istatistikYukle() {
-            const s = await getir("/api/istatistik");
-            new Chart(document.getElementById("turCubuk"), {
-                type: "bar",
-                data: {
-                    labels: s.olay_turleri.map(x => `${x.event_id} ${x.aciklama}`),
-                    datasets: [{ label: "Olay sayısı", data: s.olay_turleri.map(x => x.adet),
-                                 backgroundColor: "#3498db" }]
-                },
-                options: { indexAxis: "y", plugins: { legend: { display: false } } }
-            });
-            tabloDoldur("kullaniciTablo", ["Kullanıcı", "Olay"],
-                        s.kullanicilar.map(x => [guvenli(x.ad), x.adet]));
-            tabloDoldur("ipTablo", ["IP", "Olay"],
-                        s.ipler.map(x => [guvenli(x.ad), x.adet]));
-        }
+        await Promise.all([sonTaramaYukle(), gecmisYukle(), kritikYukle()]);
+    } catch (h) {
+        yaz("durum", "Hata: " + h.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
 
-        async function tablolarYukle() {
-            const k = await getir("/api/olaylar/kritik?limit=50");
-            tabloDoldur("kritikTablo", OLAY_BASLIK,
-                        k.olaylar.map(o => olaySatiri({ ...o, seviye: "KRİTİK" })));
-
-            const iac = await getir("/api/iac");
-            tabloDoldur("iacTablo", ["Seviye", "Skor", "Bulgu"],
-                        iac.bulgular.map(b => [rozet(b.seviye), b.skor.toFixed(1), guvenli(b.aciklama)]));
-
-            const tum = await getir("/api/olaylar?limit=100");
-            tabloDoldur("olayTablo", OLAY_BASLIK, tum.olaylar.map(olaySatiri));
-        }
-
-        async function hepsiniYukle() {
-            try {
-                await Promise.all([sonTaramaYukle(), trendYukle(), istatistikYukle(), tablolarYukle()]);
-            } catch (hata) {
-                document.getElementById("durum").textContent = "API'ye bağlanılamadı: " + hata;
-            }
-        }
-
-        hepsiniYukle();
-    </script>
+sonTaramaYukle();
+gecmisYukle();
+kritikYukle();
+</script>
 </body>
 </html>

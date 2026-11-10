@@ -70,11 +70,7 @@ def _ayarla_ip(skor: float, olay: dict) -> float:
 
 
 def _ayarla_kullanici(skor: float, olay: dict) -> float:
-    """
-    Adjust score based on username.
-    SYSTEM/LOCAL SERVICE reduce risk.
-    """
-    kullanici = olay.get("kullanici", "").upper()
+    kullanici = (olay.get("kullanici") or "").upper()
     
     # System accounts are usually harmless
     if kullanici in ["SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE"]:

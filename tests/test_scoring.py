@@ -31,3 +31,9 @@ def test_sistem_kullanicisi_riski_dusurur():
     sistem = {"event_id": 4624, "kaynak_ip": None, "kullanici": "SYSTEM"}
     normal = {"event_id": 4624, "kaynak_ip": None, "kullanici": "oyku"}
     assert hesapla_skor(sistem) < hesapla_skor(normal)
+
+
+def test_kullanici_none_olabilir():
+    olay = {"event_id": 4625, "kaynak_ip": None, "kullanici": None}
+    skor = hesapla_skor(olay)
+    assert 0 <= skor <= 10
